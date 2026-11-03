@@ -1,7 +1,7 @@
 import pytest
 from google.protobuf import descriptor_pb2
 from dot_operator.resource import IdentitySpec, ResourceMutationContext
-from core_shared_operator_harness import make_operator
+from operator_harness import make_operator
 
 def test_blank_identity_is_rejected():
     current = descriptor_pb2.FileDescriptorProto()

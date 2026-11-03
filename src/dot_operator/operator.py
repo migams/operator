@@ -1,36 +1,4 @@
-"""
-(subject) services.operator.proto.ManifestOperator
-(predicate) orchestrates
-(object) deterministic match-and-apply mutation lifecycle for protobuf message graphs)
-
-(subject) services.operator.proto.ManifestOperator
-(predicate) supports_operations
-(object) merge, replace, remove over scalar, message, repeated, map, and oneof fields)
-
-(subject) services.operator.proto.ManifestOperator
-(predicate) guarantees
-(object) identity-aware, schema-driven, replayable and idempotent mutation semantics)
-
-(subject) services.operator.proto.ManifestOperator
-(predicate) derives
-(object) minimal MutationIntent sets via structural protobuf diffing)
-
-(subject) services.operator.proto.ManifestOperator
-(predicate) materializes
-(object) normalized mutation intents onto target messages without external state)
-
-(subject) services.operator.proto.ManifestOperator
-(predicate) enforces
-(object) atomic oneof transitions and identity-scoped repeated element resolution)
-
-(subject) services.operator.proto.ManifestOperator
-(predicate) resolves_identity_using
-(object) descriptor-based identity fields including id, name and AwarenessTriple keys)
-
-(subject) services.operator.proto.ManifestOperator
-(predicate) part_of
-(object) services.operator
-"""
+"""Deterministic protobuf mutation planner and applier."""
 
 from dataclasses import replace
 
@@ -91,7 +59,7 @@ class ProtobufOperator:
         """
         Apply an already-derived mutation plan.
 
-        Validation is repeated here deliberately: replayed/persisted intents
+        Validation is repeated here deliberately: previously planned in-memory intents
         must not be able to bypass resource invariants enforced during plan().
         """
         for intent in intents:
@@ -112,7 +80,6 @@ class ProtobufOperator:
             ParseDict(overlay, msg)
             return msg
         raise TypeError(type(overlay))
-        ##
 
     def _validate_intents(
         self,

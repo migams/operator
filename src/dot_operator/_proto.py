@@ -1,4 +1,4 @@
-"""Protobuf equality helpers required by the standalone operator."""
+"""Protocol Buffer helpers for repeated-message comparisons."""
 
 def repeated_messages_equal(current, overlay):
     """Compare ordered repeated messages by deterministic serialized bytes."""

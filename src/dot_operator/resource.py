@@ -1,18 +1,4 @@
-"""
-resource operator
-
-(subject) core.shared.operator.resource
-(predicate) provides
-(object) protobuf_resource_mutation
-
-(subject) core.shared.operator.resource
-(predicate) provides
-(object) descriptor_specific_identity_resolution
-
-(subject) core.shared.operator.resource
-(predicate) part_of
-(object) core.shared.operator
-"""
+"""Descriptor-specific identity and resource delta helpers."""
 
 # pylint: disable=too-few-public-methods
 
@@ -29,6 +15,7 @@ import logging
 
 from .operator import ProtobufOperator
 from .types import OperatorContext
+from .utils import identity_only_payload, authoritative_payload
 
 log = logging.getLogger("dot_operator.resource")
 
@@ -46,7 +33,7 @@ class IdentitySpec:
     Paths are relative to the message whose identity is being resolved.
     """
 
-    paths: tuple[str, ...] = ("metadata.uid",)
+    paths: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -70,10 +57,7 @@ class ResourceMutationContext:
         default_factory=dict,
     )
 
-    immutable_paths: tuple[str, ...] = (
-        "metadata.uid",
-        "kind",
-    )
+    immutable_paths: tuple[str, ...] = ()
 
 
 # --------------------------------------------------------------------------- #
@@ -107,16 +91,10 @@ class SpecIdentityResolver:
     """
     Resolve message identities from protobuf descriptors.
 
-    The default identity normally identifies top-level Resources by
-    ``metadata.uid``.
+    Identity fields are explicit. An empty default means that repeated
+    messages are treated as unkeyed unless their descriptors are configured.
 
-    Nested message types may define their own identity contract, for example:
-
-        dev.TestModuleRequirement:
-            capability
-
-        system.SemanticTriple:
-            subject + predicate + object
+    Nested message types may declare identities by full descriptor name.
     """
 
     def __init__(
@@ -128,56 +106,11 @@ class SpecIdentityResolver:
         self._default_spec = spec
         self._identities = dict(identities or {})
 
-    def is_identity_only(
-        self,
-        msg: Message,
-    ) -> bool:
-        """
-        Return whether the populated payload contains only configured identity
-        fields (plus repeated message containers, preserving existing operator
-        selector semantics).
-        """
-        paths = self.fields(msg)
+    def is_identity_only(self, msg: Message) -> bool:
+        return identity_only_payload(msg, self.fields(msg))
 
-        if not paths:
-            return False
-
-        allowed = {path.split(".")[-1] for path in paths}
-
-        for fd, _ in msg.ListFields():
-            if fd.name in allowed:
-                continue
-
-            if fd.is_repeated and fd.type == FieldDescriptor.TYPE_MESSAGE:
-                continue
-
-            return False
-
-        return True
-
-    def is_message_authoritative(
-        self,
-        msg: Message,
-    ) -> bool:
-        """
-        Preserve the existing operator rule: a populated non-identity scalar
-        makes an element payload authoritative for replace semantics.
-        """
-        paths = self.fields(msg)
-
-        if not paths:
-            return False
-
-        allowed = {path.split(".")[-1] for path in paths}
-
-        for fd, _ in msg.ListFields():
-            if fd.name in allowed:
-                continue
-
-            if fd.type != FieldDescriptor.TYPE_MESSAGE and not fd.is_repeated:
-                return True
-
-        return False
+    def is_message_authoritative(self, msg: Message) -> bool:
+        return authoritative_payload(msg, self.fields(msg))
 
     def find_overlay_parent_message(
         self,

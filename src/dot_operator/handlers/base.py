@@ -1,12 +1,4 @@
-"""
-(subject) services.operator.proto.handlers.base
-(predicate) provides
-(object) protocol for field mutation handlers
-
-(subject) services.operator.proto.handlers.base
-(predicate) part_of
-(object) services.operator
-"""
+"""Base class for field-kind handlers."""
 
 from typing import Protocol
 

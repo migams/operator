@@ -1,12 +1,4 @@
-"""
-(subject) services.operator.proto.processors.ReplaceProcessor
-(predicate) applies
-(object) authoritative replace semantics for repeated protobuf fields
-
-(subject) services.operator.proto.processors.ReplaceProcessor
-(predicate) part_of
-(object) services.operator
-"""
+"""Repeated-field replace planning."""
 
 import logging
 

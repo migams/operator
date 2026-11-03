@@ -1,12 +1,4 @@
-"""
-(subject) services.operator.proto.processors.MergeProcessor
-(predicate) applies
-(object) identity-aware merge semantics for repeated protobuf fields
-
-(subject) services.operator.proto.processors.MergeProcessor
-(predicate) part_of
-(object) services.operator
-"""
+"""Repeated-field merge planning."""
 
 # pylint: disable=too-many-arguments, too-few-public-methods
 

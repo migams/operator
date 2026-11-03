@@ -1,12 +1,4 @@
-"""
-(subject) services.operator.proto.DefaultEmitter
-(predicate) constructs
-(object) normalized mutation intent representations
-
-(subject) services.operator.proto.DefaultEmitter
-(predicate) part_of
-(object) services.operator
-"""
+"""Creation of typed protobuf mutation intents."""
 
 from .types import MutationIntent
 

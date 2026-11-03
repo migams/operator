@@ -1,12 +1,4 @@
-"""
-(subject) services.operator.proto.handlers.ScalarHandler
-(predicate) handles
-(object) scalar field mutation detection
-
-(subject) services.operator.proto.handlers.ScalarHandler
-(predicate) part_of
-(object) services.operator
-"""
+"""Scalar field mutation planning."""
 
 from google.protobuf.message import Message
 from typing import TYPE_CHECKING

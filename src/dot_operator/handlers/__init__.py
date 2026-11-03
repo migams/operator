@@ -1,12 +1,4 @@
-"""
-(subject) services.operator.proto.handlers
-(predicate) aggregates
-(object) field-level mutation strategy implementations
-
-(subject) services.operator.proto.handlers
-(predicate) part_of
-(object) services.operator
-"""
+"""Field-kind handlers for mutation planning."""
 
 from .map import MapHandler
 from .message import MessageHandler

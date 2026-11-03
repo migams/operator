@@ -1,4 +1,4 @@
-# services/operator/proto/struct.py
+"""Utilities for applying updates to protobuf Struct."""
 from google.protobuf.json_format import MessageToDict, ParseDict
 
 

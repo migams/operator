@@ -1,12 +1,4 @@
-"""
-(subject) services.operator.proto.handlers.MapHandler
-(predicate) handles
-(object) map field mutation detection
-
-(subject) services.operator.proto.handlers.MapHandler
-(predicate) part_of
-(object) services.operator
-"""
+"""Map-field mutation planning."""
 
 from ..types import MapKeySelector
 from .base import FieldHandler

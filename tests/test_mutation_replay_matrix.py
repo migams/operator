@@ -31,11 +31,18 @@ def test_map_container_level_replay(operation, expected):
     assert dict(target.attributes) == expected
 
 
-def test_replayed_map_clear_all_entries():
+def test_replayed_map_clear_all_entries_requires_explicit_none():
     target = Record()
     target.attributes["a"] = "old"
-    _replay(target, "attributes", "remove", {})
+    _replay(target, "attributes", "remove", None)
     assert dict(target.attributes) == {}
+
+
+def test_replayed_map_empty_selector_is_noop():
+    target = Record()
+    target.attributes["a"] = "keep"
+    _replay(target, "attributes", "remove", {})
+    assert dict(target.attributes) == {"a": "keep"}
 
 
 @pytest.mark.parametrize("operation,values,expected", [
@@ -43,6 +50,7 @@ def test_replayed_map_clear_all_entries():
     ("replace", ["b", "c"], ["b", "c"]),
     ("remove", ["b"], ["a", "c"]),
     ("remove", None, []),
+    ("remove", [], ["a", "b", "c"]),
 ])
 def test_repeated_scalar_container_level_replay(operation, values, expected):
     target = Record(tags=["a", "b", "c"])
@@ -118,3 +126,23 @@ def test_unknown_replayed_operation_is_rejected_before_mutation():
     with pytest.raises(ValueError, match="unsupported operator operation"):
         _operator().apply_intents(target, [intent])
     assert target.name == "old"
+
+
+
+def test_remove_preserves_unrelated_duplicate_repeated_message_elements():
+    target = Record()
+    target.items.add(id="a", value="first")
+    target.items.add(id="a", value="second")
+    target.items.add(id="b", value="delete")
+    item_type = type(target.items[0])
+    _replay(target, "items", "remove", [item_type(id="b")])
+    assert [(x.id, x.value) for x in target.items] == [
+        ("a", "first"), ("a", "second")
+    ]
+
+
+def test_empty_repeated_message_selector_is_noop():
+    target = Record()
+    target.items.add(id="a", value="keep")
+    _replay(target, "items", "remove", [])
+    assert [(x.id, x.value) for x in target.items] == [("a", "keep")]

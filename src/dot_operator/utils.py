@@ -1,15 +1,6 @@
-"""
-(subject) services.operator.proto.utils
-(predicate) provides
-(object) identity resolution and traversal utilities for mutation semantics
-
-(subject) services.operator.proto.utils
-(predicate) part_of
-(object) services.operator
-"""
+"""Descriptor and identity utilities for protobuf messages."""
 
 from google.protobuf.descriptor import Descriptor, FieldDescriptor
-from google.protobuf.internal.python_message import GeneratedProtocolMessageType
 from google.protobuf.message import Message
 
 
@@ -35,9 +26,63 @@ def _to_descriptor(obj) -> Descriptor:
         return obj
     if isinstance(obj, Message):
         return obj.DESCRIPTOR
-    if isinstance(obj, GeneratedProtocolMessageType):
+    if isinstance(getattr(obj, "DESCRIPTOR", None), Descriptor):
         return obj.DESCRIPTOR
     raise TypeError(f"Unsupported type for identity resolution: {type(obj)}")
+
+
+def _identity_tree(paths: tuple[str, ...]) -> dict:
+    """Represent nested identity paths without relying on field-name suffixes."""
+    root: dict = {}
+    for path in paths:
+        node = root
+        for part in path.split("."):
+            node = node.setdefault(part, {})
+    return root
+
+
+def identity_only_payload(msg: Message, paths: tuple[str, ...]) -> bool:
+    """Check that a message contains no non-identity scalar values."""
+    if not paths:
+        return False
+
+    def only_selected(value: Message, tree: dict) -> bool:
+        for field, member in value.ListFields():
+            if field.name in tree:
+                nested = tree[field.name]
+                if nested and (
+                    field.is_repeated
+                    or field.type != FieldDescriptor.TYPE_MESSAGE
+                    or not only_selected(member, nested)
+                ):
+                    return False
+                continue
+            if field.is_repeated and field.type == FieldDescriptor.TYPE_MESSAGE:
+                continue
+            return False
+        return True
+
+    return only_selected(msg, _identity_tree(paths))
+
+
+def authoritative_payload(msg: Message, paths: tuple[str, ...]) -> bool:
+    """Identify overlays containing non-identity scalar changes."""
+    if not paths:
+        return False
+
+    def contains_update(value: Message, tree: dict) -> bool:
+        for field, member in value.ListFields():
+            if field.name in tree:
+                nested = tree[field.name]
+                if nested and field.type == FieldDescriptor.TYPE_MESSAGE and not field.is_repeated:
+                    if contains_update(member, nested):
+                        return True
+                continue
+            if field.type != FieldDescriptor.TYPE_MESSAGE and not field.is_repeated:
+                return True
+        return False
+
+    return contains_update(msg, _identity_tree(paths))
 
 
 class ResourceIdentityResolver:
@@ -92,13 +137,6 @@ class ResourceIdentityResolver:
         if valid:
             return tuple(valid)
 
-        # fallback: only if fully valid
-        if path_exists(desc, "metadata.uid"):
-            return ("metadata.uid",)
-
-        if path_exists(desc, "id"):
-            return ("id",)
-
         return ()
 
     def key(self, msg: Message | type) -> tuple:
@@ -116,49 +154,10 @@ class ResourceIdentityResolver:
     # Semantics
     # ─────────────────────────
     def is_identity_only(self, msg: Message) -> bool:
-        paths = self.fields(msg)
-        if not paths:
-            return False
-
-        allowed: dict[str, dict] = {}
-        for path in paths:
-            node = allowed
-            for part in path.split("."):
-                node = node.setdefault(part, {})
-
-        def is_selector_only(value: Message, identity_tree: dict) -> bool:
-            for field, member in value.ListFields():
-                if field.name in identity_tree:
-                    nested = identity_tree[field.name]
-                    if nested:
-                        if (
-                            field.is_repeated
-                            or field.type != FieldDescriptor.TYPE_MESSAGE
-                            or not is_selector_only(member, nested)
-                        ):
-                            return False
-                    continue
-                if field.is_repeated and field.type == FieldDescriptor.TYPE_MESSAGE:
-                    continue
-                return False
-            return True
-
-        return is_selector_only(msg, allowed)
+        return identity_only_payload(msg, self.fields(msg))
 
     def is_message_authoritative(self, msg: Message) -> bool:
-        paths = self.fields(msg)
-        if not paths:
-            return False
-
-        allowed = {p.split(".")[-1] for p in paths}
-
-        for f, _ in msg.ListFields():
-            if f.name in allowed:
-                continue
-            if f.type != FieldDescriptor.TYPE_MESSAGE and not f.is_repeated:
-                return True
-
-        return False
+        return authoritative_payload(msg, self.fields(msg))
 
     def container_mode(self, field: FieldDescriptor) -> str:
         """

@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=65"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "dot-protobuf-operator"
-version = "0.1.0.dev0"
+version = "0.1.0"
 description = "Deterministic, identity-aware protobuf mutation planning and application."
 readme = "README.md"
 license = "MIT"

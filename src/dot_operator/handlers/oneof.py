@@ -1,12 +1,4 @@
-"""
-(subject) services.operator.proto.handlers.OneOfHandler
-(predicate) enforces
-(object) atomic mutation semantics for protobuf oneof groups
-
-(subject) services.operator.proto.handlers.OneOfHandler
-(predicate) part_of
-(object) services.operator
-"""
+"""Atomic oneof branch planning."""
 
 from google.protobuf.descriptor import OneofDescriptor
 from google.protobuf.message import Message

@@ -30,10 +30,8 @@ The installed Python module is `dot_operator`.
 This example updates an existing item in a repeated Protobuf field without creating a duplicate:
 
 ```python
-from types import SimpleNamespace
-
 from google.protobuf import descriptor_pb2
-from dot_operator import OperatorContext, ProtobufOperator, ResourceIdentityResolver
+from dot_operator import IdentitySpec, OperatorContext, ProtobufOperator, SpecIdentityResolver
 
 current = descriptor_pb2.FileDescriptorProto()
 current.message_type.add(name="Account")
@@ -42,9 +40,8 @@ desired = descriptor_pb2.FileDescriptorProto()
 desired.message_type.add(name="Account").options.map_entry = True
 
 # Identify repeated messages by their "name" field.
-settings = SimpleNamespace(identity={"message_type": "name"})
-identity = ResourceIdentityResolver(settings)
-operator = ProtobufOperator(OperatorContext(settings, identity))
+identity = SpecIdentityResolver(IdentitySpec(paths=("name",)))
+operator = ProtobufOperator(OperatorContext(current, identity))
 
 # Planning does not modify the current message.
 changes = operator.plan(current, desired, op="merge")
@@ -58,6 +55,22 @@ assert current.message_type[0].options.map_entry is True
 
 For a single-step operation, use `operator.apply(current, "merge", desired)`.
 
+## Example: updating a service configuration
+
+A common use case is changing one service without overwriting the endpoints,
+ownership information, or settings of other services. The runnable example
+[service configuration](examples/service_configuration.py) declares a small
+public Protobuf schema with `Configuration` and `Service` messages.
+
+```sh
+python examples/service_configuration.py
+```
+
+The example selects services by their `name`, changes the `billing` service's
+replica count, adds an `audit` service, and leaves the existing
+`notifications` service unchanged. It also protects the
+`environment` field as immutable. The test suite executes this example.
+
 ## Behavior
 
 - **Plan and apply:** `plan(message, overlay, op=...)` returns mutation intents that can be inspected or applied later with `apply_intents(message, intents)`.
@@ -65,8 +78,16 @@ For a single-step operation, use `operator.apply(current, "merge", desired)`.
 - **Identity-aware collections:** When an identity field is configured, repeated message elements are matched by identity. A merge can update an existing element rather than append another. Missing or duplicate identities in keyed merges are rejected.
 - **Unkeyed collections:** If there is no valid identity for a repeated message type, the operator uses list semantics; it does not automatically deduplicate elements.
 - **In-place application:** `apply` and `apply_intents` update the supplied target message. Copy it first if you need to retain the original.
+- **Removal semantics:** Empty repeated-field and map selectors are no-ops. Use `None` explicitly in an in-memory remove intent to clear the container; use `replace` for authoritative updates.
+- **Identity configuration:** No field is implicitly treated as an identity or immutable; pass identity paths and immutable paths explicitly.
+- **Execution scope:** An operator instance can be used for independent calls on distinct target messages in multiple threads. Never mutate the same target concurrently, and do not share mutable intent objects across concurrent calls.
+- **Plan format:** `MutationIntent` contains in-process Protobuf descriptor references. It is **not a stable serializable format** for persistence or cross-process transfer; regenerate the plan from the original messages instead.
 
-The identity configuration in the example uses a plain Python object with an `identity` mapping; no application-specific message types are required. Advanced users can also configure descriptor-specific identity rules and immutable paths through the lower-level APIs.
+Use `SpecIdentityResolver` for explicit identity paths and optional
+descriptor-specific overrides, and `ResourceMutationContext` to configure
+immutable paths when calling `ResourceDeltaApplier`.
+`ResourceIdentityResolver` remains available for existing integrations
+that supply an `identity` mapping.
 
 ## Tests and coverage
 

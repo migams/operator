@@ -1,12 +1,4 @@
-"""
-(subject) services.operator.proto.processors.RemoveProcessor
-(predicate) applies
-(object) identity-based removal semantics for repeated protobuf fields
-
-(subject) services.operator.proto.processors.RemoveProcessor
-(predicate) part_of
-(object) services.operator
-"""
+"""Repeated-field remove planning."""
 
 from google.protobuf.descriptor import FieldDescriptor
 from google.protobuf.message import Message

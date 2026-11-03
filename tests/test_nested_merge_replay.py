@@ -82,7 +82,7 @@ def test_replay_merges_nested_message_map_existing_and_new_keys():
     assert profiles["new"].city == "Rome"
 
 
-def test_replay_replaces_nested_singular_message_without_touching_siblings():
+def test_replay_merges_nested_singular_message_preserving_other_fields():
     target, item = _target()
     item.profile.city = "Paris"
     item.profile.timezone = "CET"
@@ -90,7 +90,7 @@ def test_replay_replaces_nested_singular_message_without_touching_siblings():
     overlay.profile.city = "Rome"
     _replay(target, "items", "merge", [overlay])
     assert target.items[0].profile.city == "Rome"
-    assert target.items[0].profile.timezone == ""
+    assert target.items[0].profile.timezone == "CET"
     assert target.items[1].value == "keep"
 
 

@@ -1,12 +1,4 @@
-"""
-(subject) services.operator.proto.processors
-(predicate) groups
-(object) repeated-field mutation processors
-
-(subject) services.operator.proto.processors
-(predicate) part_of
-(object) services.operator
-"""
+"""Operation-specific repeated-field processors."""
 
 from .merge import MergeProcessor
 from .remove import RemoveProcessor

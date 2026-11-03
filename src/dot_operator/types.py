@@ -1,12 +1,4 @@
-"""
-(subject) services.operator.proto.MutationIntent
-(predicate) represents
-(object) atomic mutation instruction over protobuf fields
-
-(subject) services.operator.proto.MutationIntent
-(predicate) part_of
-(object) services.operator
-"""
+"""Public types and contracts for protobuf mutation."""
 
 from dataclasses import dataclass
 from typing import Any, Protocol
@@ -17,12 +9,17 @@ from google.protobuf.message import Message
 
 @dataclass
 class MutationIntent:
-    field: FieldDescriptor
+    """An in-memory plan operation bound to local protobuf descriptors.
+
+    Intent objects are not a stable wire format; serialize domain inputs or
+    regenerate plans after restarting a process.
+    """
+    field: FieldDescriptor | None
     value: Any
     new_value: Any = None
     op: str = "merge"
-    parent_chain: list[FieldDescriptor | Message] = None
-    overlay: Message = None
+    parent_chain: list[FieldDescriptor | Message] | None = None
+    overlay: Message | None = None
 
 
 class MapKeySelector:
@@ -34,7 +31,6 @@ class IdentityResolver(Protocol):
     def fields(self, obj: Message | Descriptor) -> tuple[str, ...]: ...
     def key(self, msg: Message) -> tuple: ...
     def is_identity_only(self, msg: Message) -> bool: ...
-    def is_authoritative(self, msg: Message) -> bool: ...
     def find_overlay_parent_message(self, intent, field) -> Message | None: ...
     def is_message_authoritative(self, msg: Message) -> bool: ...
 

@@ -1,12 +1,4 @@
-"""
-(subject) services.operator.proto.MatchEngine
-(predicate) derives
-(object) structured mutation intents from protobuf graph differences
-
-(subject) services.operator.proto.MatchEngine
-(predicate) part_of
-(object) services.operator
-"""
+"""Field traversal and change detection for protobuf messages."""
 
 # pylint: disable=too-many-arguments, too-few-public-methods
 
@@ -53,14 +45,6 @@ def field_kind(field: FieldDescriptor) -> FieldKind:
         return FieldKind.MESSAGE
     return FieldKind.SCALAR
 
-
-def field_rank(field: FieldDescriptor) -> int:
-    return {
-        FieldKind.REPEATED: 3,
-        FieldKind.MESSAGE: 2,
-        FieldKind.SCALAR: 1,
-        FieldKind.MAP: 4,
-    }[field_kind(field)]
 
 
 class MatchEngine:

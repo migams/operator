@@ -1,12 +1,4 @@
-"""
-(subject) services.operator.proto.handlers.RepeatedHandler
-(predicate) resolves
-(object) identity-aware repeated field mutation strategies
-
-(subject) services.operator.proto.handlers.RepeatedHandler
-(predicate) part_of
-(object) services.operator
-"""
+"""Identity-aware repeated-field mutation planning."""
 
 from google.protobuf.descriptor import FieldDescriptor
 from google.protobuf.json_format import MessageToDict

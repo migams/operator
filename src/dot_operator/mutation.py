@@ -1,14 +1,8 @@
-"""
-(subject) services.operator.proto.MutationApplier
-(predicate) materializes
-(object) mutation intents onto protobuf message trees
-
-(subject) services.operator.proto.MutationApplier
-(predicate) part_of
-(object) services.operator
-"""
+"""Apply mutation intents to protobuf messages."""
 
 from collections.abc import MutableMapping
+from contextvars import ContextVar
+from dataclasses import dataclass, field as dataclass_field
 
 from google.protobuf.descriptor import FieldDescriptor
 from google.protobuf.message import Message
@@ -21,34 +15,42 @@ from .utils import (
 )
 
 
+@dataclass
+class _ExecutionState:
+    merge_indexes: dict = dataclass_field(default_factory=dict)
+    selector_indexes: dict = dataclass_field(default_factory=dict)
+    selector_identity_names: set = dataclass_field(default_factory=set)
+
+
 class MutationApplier:
     def __init__(self, ctx: OperatorContext):
         self.ctx = ctx
         self.resource = ctx.resource
         self.identity = ctx.identity
+        self._current_run: ContextVar[_ExecutionState | None] = ContextVar(
+            "protobuf_operator_execution", default=None
+        )
 
     def apply(self, root: Message, intents):
-        # These indexes belong to one execution, never to the operator instance.
-        self._merge_indexes = {}
-        self._selector_indexes = {}
-        self._selector_identity_names = set()
+        # Each call has isolated indexes, including when sharing the same applier
+        # across threads or nested calls. The target and intents are caller-owned.
+        state = _ExecutionState()
+        token = self._current_run.set(state)
         try:
             for intent in intents:
                 if intent.op != "merge":
-                    self._merge_indexes.clear()
+                    state.merge_indexes.clear()
                 parent = self._resolve_scope(root, intent)
                 self._apply_intent(parent, intent)
                 if (
                     intent.field is None
                     or intent.field.is_repeated
-                    or intent.field.name in self._selector_identity_names
+                    or intent.field.name in state.selector_identity_names
                 ):
-                    self._selector_indexes.clear()
+                    state.selector_indexes.clear()
             return root
         finally:
-            self._merge_indexes = {}
-            self._selector_indexes = {}
-            self._selector_identity_names = set()
+            self._current_run.reset(token)
 
     # ------------------------
     # Dispatcher
@@ -154,7 +156,7 @@ class MutationApplier:
             # Field hop (schema navigation)
             # -----------------------------
             if isinstance(token, FieldDescriptor):
-                if isinstance(msg, list) or "Repeated" in type(msg).__name__:
+                if not isinstance(msg, Message):
                     raise ValueError(
                         f"parent_chain invalid: tried to access field '{token.name}' "
                         f"on repeated container without element selector"
@@ -183,7 +185,8 @@ class MutationApplier:
                 sel_id = self.identity.key(token)
                 if not sel_id:
                     raise ValueError("missing repeated message selector identity")
-                cache = getattr(self, "_selector_indexes", None)
+                state = self._current_run.get()
+                cache = state.selector_indexes if state is not None else None
                 cache_key = id(container)
                 cached = cache.get(cache_key) if cache is not None else None
                 if cached is None or cached[0] is not container:
@@ -194,7 +197,7 @@ class MutationApplier:
                             index.setdefault(key, []).append(cur)
                     if cache is not None:
                         cache[cache_key] = (container, index)
-                    names = getattr(self, "_selector_identity_names", None)
+                    names = state.selector_identity_names if state is not None else None
                     if names is not None:
                         names.update(
                             part for path in self.identity.fields(token) for part in path.split(".")
@@ -295,7 +298,8 @@ class MutationApplier:
         is_message = self._is_repeated_message(field)
         existing = None
         if intent.op == "merge" and is_message and self.identity.fields(field.message_type):
-            cache = getattr(self, "_merge_indexes", None)
+            state = self._current_run.get()
+            cache = state.merge_indexes if state is not None else None
             cache_key = (id(parent), field.full_name)
             cached = cache.get(cache_key) if cache is not None else None
             if cached is None or cached[0] is not parent:
@@ -472,12 +476,9 @@ class MutationApplier:
 
                         # singular message
                         if f.type == FieldDescriptor.TYPE_MESSAGE:
-                            if f.message_type.full_name == "google.protobuf.Struct":
-                                tgt.Clear()
-                                tgt.MergeFrom(new_v)
-                            else:
-                                tgt.Clear()
-                                tgt.MergeFrom(new_v)
+                            # Merge is non-destructive for unspecified sibling fields.
+                            # Authoritative clearing belongs to replace, never merge.
+                            tgt.MergeFrom(new_v)
                             continue
 
                         # singular scalar
@@ -503,14 +504,17 @@ class MutationApplier:
     def _apply_repeated_remove(self, container, intent, is_message: bool):
         nv = intent.new_value
 
-        if not nv:
+        # None is an explicit "remove all" sentinel in the in-memory API.
+        # An empty list of selectors is not permission to delete anything.
+        if nv is None:
             container.clear()
             return
-
         selectors = list(nv)
+        if not selectors:
+            return
 
         if is_message:
-            self._dedup_repeated_message(container)
+            # Deleting a selected identity must never deduplicate other elements.
             self._remove_repeated_message(container, selectors)
         else:
             self._remove_repeated_scalar(container, selectors)
@@ -589,12 +593,12 @@ class MutationApplier:
                         _assign(k, v)
 
             elif intent.op == "remove":
-                if nv:
-                    keys = nv.keys() if isinstance(nv, dict) else nv
+                if intent.new_value is None:
+                    container.clear()
+                else:
+                    keys = nv.keys() if isinstance(nv, MutableMapping) else nv
                     for k in keys:
                         container.pop(k, None)
-                else:
-                    container.clear()
             return
 
         # =========================

@@ -1,12 +1,4 @@
-"""
-(subject) services.operator.proto.handlers.MessageHandler
-(predicate) handles
-(object) nested message field traversal and mutation detection
-
-(subject) services.operator.proto.handlers.MessageHandler
-(predicate) part_of
-(object) services.operator
-"""
+"""Singular message mutation planning."""
 
 from google.protobuf.struct_pb2 import Struct
 

@@ -1,12 +1,4 @@
-"""
-(subject) services.operator.proto.handlers.StructHandler
-(predicate) handles
-(object) nested message field traversal and mutation detection
-
-(subject) services.operator.proto.handlers.StructHandler
-(predicate) part_of
-(object) services.operator
-"""
+"""Specialized protobuf Struct mutation planning."""
 
 
 def _handle_struct(
