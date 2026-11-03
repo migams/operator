@@ -24,3 +24,8 @@ def test_readme_quick_start_runs_without_private_runtime():
     namespace = {"__name__": "__readme_example__"}
     exec(compile(match.group(1), "README.md", "exec"), namespace)
     assert namespace["current"].message_type[0].options.map_entry is True
+
+
+def test_internal_release_documents_not_in_public_checkout():
+    assert not (ROOT / "RELEASE_CHECKLIST.md").exists()
+    assert not (ROOT / "SOURCE_PROVENANCE.md").exists()
