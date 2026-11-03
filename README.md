@@ -3,11 +3,11 @@
 A deterministic, identity-aware planner and applier for Python Protocol Buffer messages.
 
 **Status:** pre-release candidate. Exported from DOT Core without private history.
-The code is licensed under MIT. The repository has not yet been pushed or released publicly.
+The code is licensed under MIT. The package is a release candidate; no package registry release has been performed.
 
 ## Requirements
 
-Python 3.10+ and protobuf 5 or 6.
+Python 3.10+ and protobuf 6.31.1+ (within the protobuf 6.x series).
 
 ## Development
 
@@ -50,5 +50,4 @@ and isolated OSS-only adaptations.
 MIT License. Copyright (c) 2026 Michael Gams.
 See [LICENSE](LICENSE) for the full license text.
 
-The OSS checkout is being prepared locally. Its public release remains
-subject to source/dependency review and explicit approval to push.
+Release preparation and public CI are tracked in RELEASE_CHECKLIST.md.

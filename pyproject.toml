@@ -10,7 +10,7 @@ readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
 requires-python = ">=3.10"
-dependencies = ["protobuf>=5,<7"]
+dependencies = ["protobuf>=6.31.1,<7"]
 
 [project.optional-dependencies]
 test = ["pytest>=8"]
