@@ -68,13 +68,19 @@ For a single-step operation, use `operator.apply(current, "merge", desired)`.
 
 The identity configuration in the example uses a plain Python object with an `identity` mapping; no application-specific message types are required. Advanced users can also configure descriptor-specific identity rules and immutable paths through the lower-level APIs.
 
-## Tests
+## Tests and coverage
 
 ```sh
 python -m pytest -q
+python -m pytest -q --cov=dot_operator --cov-branch --cov-report=term-missing --cov-fail-under=80
 ```
 
-The test suite uses public Protobuf schemas and exercises identity resolution, repeated-message merging, plan replay, and package metadata.
+The tests use public Protobuf schemas and exercise all three operations
+(`merge`, `replace`, `remove`) across scalar fields, nested messages,
+maps, repeated scalars, identity-aware repeated messages, and oneofs.
+They also cover replayed mutation plans, resource delta APIs, immutable
+fields, invalid identities, and unsupported operations. CI rejects
+combined line-and-branch coverage below 80%.
 
 ## License
 

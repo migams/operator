@@ -67,6 +67,8 @@ class ProtobufOperator:
         *,
         op: str,
     ) -> list[MutationIntent]:
+        if op not in ("merge", "replace", "remove"):
+            raise ValueError(f"unsupported operator operation: {op!r}")
         overlay_msg = self._as_message(target, overlay)
 
         if op == "replace" and target == overlay_msg:
@@ -92,6 +94,11 @@ class ProtobufOperator:
         Validation is repeated here deliberately: replayed/persisted intents
         must not be able to bypass resource invariants enforced during plan().
         """
+        for intent in intents:
+            if intent.op not in ("merge", "replace", "remove"):
+                raise ValueError(
+                    f"unsupported operator operation: {intent.op!r}"
+                )
         self._validate_intents(target, intents)
         return self.applier.apply(target, intents)
 

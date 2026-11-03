@@ -23,7 +23,8 @@ class ScalarHandler(FieldHandler):
         identity_selected = any(isinstance(token, Message) for token in parent_chain)
         if identity_selected and field.name in engine.identity.fields(field.containing_type):
             return False
-        if cur_val == overlay_val:
+        # Removal targets the field even when the selector equals its value.
+        if op != "remove" and cur_val == overlay_val:
             return False
 
         out.append(

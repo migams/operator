@@ -102,7 +102,12 @@ class ResourceIdentityResolver:
         if not isinstance(msg, Message):
             return ()
         paths = self.fields(msg)
-        return tuple(self._resolve_path(msg, p) for p in paths)
+        if not paths:
+            return ()
+        key = tuple(self._resolve_path(msg, path) for path in paths)
+        if any(value is None or value == "" or value == b"" for value in key):
+            return ()
+        return key
 
     # ─────────────────────────
     # Semantics

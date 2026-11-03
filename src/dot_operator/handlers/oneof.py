@@ -26,6 +26,7 @@ class OneOfHandler(FieldHandler):
         self,
         *,
         engine,
+        target,
         field,
         cur_val,
         overlay_val,
@@ -37,26 +38,43 @@ class OneOfHandler(FieldHandler):
         if oneof is None:
             return False
 
-        target: Message | None = next(
-            (value for value in reversed(parent_chain) if isinstance(value, Message)),
-            None,
-        )
+        selected = target.WhichOneof(oneof.name)
+        incoming = field.name
 
-        t_selected = target.WhichOneof(oneof.name) if target is not None else None
+        if op == "remove":
+            # A remove selector only affects the selected member of the group.
+            if selected != incoming:
+                return False
+            out.append(
+                engine._emitter.message(
+                    field=field,
+                    cur_val=cur_val,
+                    overlay_val=None,
+                    op="remove",
+                    parent_chain=parent_chain,
+                )
+            )
+            return True
 
-        o_selected = field.name
-
-        # This handler only handles branch switches.
-        # Same-branch fields must be handled by the normal message
-        # traversal, not by redispatching the same oneof handler.
-        if t_selected == o_selected:
-            return False
+        if selected == incoming:
+            if cur_val == overlay_val:
+                return False
+            out.append(
+                engine._emitter.message(
+                    field=field,
+                    cur_val=cur_val,
+                    overlay_val=overlay_val,
+                    op=op,
+                    parent_chain=parent_chain,
+                )
+            )
+            return True
 
         out.append(
             engine._emitter.message(
                 field=field,
                 cur_val=(
-                    getattr(target, t_selected) if target is not None and t_selected else None
+                    getattr(target, selected) if selected else None
                 ),
                 overlay_val=overlay_val,
                 op="replace",

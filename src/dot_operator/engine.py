@@ -132,6 +132,7 @@ class MatchEngine:
 
         for field, cur_val, overlay_val in zip_fields_by_name(target, overlay):
             if self._dispatch_field(
+                target=target,
                 field=field,
                 overlay_val=overlay_val,
                 cur_val=cur_val,
@@ -146,6 +147,7 @@ class MatchEngine:
     def _dispatch_field(
         self,
         *,
+        target,
         field,
         overlay_val,
         cur_val,
@@ -170,6 +172,7 @@ class MatchEngine:
         if field.containing_oneof is not None:
             return self._oneof_handler.handle(
                 engine=self,
+                target=target,
                 field=field,
                 cur_val=cur_val,
                 overlay_val=overlay_val,

@@ -250,12 +250,17 @@ class MutationApplier:
             return
 
         if intent.field.containing_oneof is not None:
-            parent.ClearField(intent.field.containing_oneof.name)
+            oneof_name = intent.field.containing_oneof.name
+            if intent.op == "remove":
+                parent.ClearField(name)
+                return
+            if intent.op == "replace" or parent.WhichOneof(oneof_name) != name:
+                parent.ClearField(oneof_name)
 
             if isinstance(intent.new_value, Message):
-                getattr(parent, intent.field.name).MergeFrom(intent.new_value)
+                getattr(parent, name).MergeFrom(intent.new_value)
             else:
-                setattr(parent, intent.field.name, intent.new_value)
+                setattr(parent, name, intent.new_value)
             return
 
         name = intent.field.name
