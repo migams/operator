@@ -16,4 +16,4 @@ def test_release_uses_mit_license_and_embeds_license_file():
 def test_protobuf_6_security_floor_prevents_known_affected_ranges():
     metadata = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
     assert 'dependencies = ["protobuf>=6.31.1,<7"]' in metadata
-    assert "Python 3.10+ and protobuf 6.31.1+" in (ROOT / "README.md").read_text(encoding="utf-8")
+    assert "protobuf>=6.31.1,<7" in (ROOT / "README.md").read_text(encoding="utf-8")

@@ -1,53 +1,81 @@
-# DOT Protobuf Operator
+# Protobuf Mutation Operator
 
-A deterministic, identity-aware planner and applier for Python Protocol Buffer messages.
+A small Python library for **planning and applying changes to Protocol Buffer messages**. It provides a deterministic mutation plan, supports merge, replace, and remove operations, and can match repeated-message elements by a configured identity.
 
-**Status:** pre-release candidate. Exported from DOT Core without private history.
-The code is licensed under MIT. The package is a release candidate; no package registry release has been performed.
+The operator runs in your Python process. It does not require a database, service, or network connection.
 
 ## Requirements
 
-Python 3.10+ and protobuf 6.31.1+ (within the protobuf 6.x series).
+- Python 3.10 or newer
+- `protobuf>=6.31.1,<7`
 
-## Development
+## Installation
 
-~~~sh
+Install the package from a checkout of this repository:
+
+```sh
+python -m pip install .
+```
+
+For development and tests:
+
+```sh
 python -m pip install -e '.[test]'
-python -m pytest -q
-~~~
+```
 
-Tests use dynamically defined public protobuf schemas. No private DOT Core
-package, service, database, or daemon should be required.
+The installed Python module is `dot_operator`.
 
-## API
+## Quick start
 
-The ProtobufOperator separates planning from execution:
+This example updates an existing item in a repeated Protobuf field without creating a duplicate:
 
-~~~python
+```python
 from types import SimpleNamespace
+
+from google.protobuf import descriptor_pb2
 from dot_operator import OperatorContext, ProtobufOperator, ResourceIdentityResolver
 
-resource = SimpleNamespace(identity={"network": "name"})
-identity = ResourceIdentityResolver(resource)
-operator = ProtobufOperator(OperatorContext(resource, identity))
-# target and overlay are protobuf messages of the same type
-# intents = operator.plan(target, overlay, op="merge")
-# operator.apply_intents(target, intents)
-~~~
+current = descriptor_pb2.FileDescriptorProto()
+current.message_type.add(name="Account")
 
-Supported operations: merge, replace, and remove. Repeated messages with
-configured identities use identity-aware set semantics, rejecting duplicate
-overlay identities. Repeated messages without a valid identity use list
-semantics and are not automatically deduplicated.
+desired = descriptor_pb2.FileDescriptorProto()
+desired.message_type.add(name="Account").options.map_entry = True
 
-## Export provenance
+# Identify repeated messages by their "name" field.
+settings = SimpleNamespace(identity={"message_type": "name"})
+identity = ResourceIdentityResolver(settings)
+operator = ProtobufOperator(OperatorContext(settings, identity))
 
-See SOURCE_PROVENANCE.md for the pinned source commit, Git-tree digest,
-and isolated OSS-only adaptations.
+# Planning does not modify the current message.
+changes = operator.plan(current, desired, op="merge")
+
+# Apply the plan to the original Protobuf message.
+operator.apply_intents(current, changes)
+
+assert len(current.message_type) == 1
+assert current.message_type[0].options.map_entry is True
+```
+
+For a single-step operation, use `operator.apply(current, "merge", desired)`.
+
+## Behavior
+
+- **Plan and apply:** `plan(message, overlay, op=...)` returns mutation intents that can be inspected or applied later with `apply_intents(message, intents)`.
+- **Operations:** `merge`, `replace`, and `remove` operate on Protobuf fields, including nested messages, maps, oneofs, and repeated fields.
+- **Identity-aware collections:** When an identity field is configured, repeated message elements are matched by identity. A merge can update an existing element rather than append another. Missing or duplicate identities in keyed merges are rejected.
+- **Unkeyed collections:** If there is no valid identity for a repeated message type, the operator uses list semantics; it does not automatically deduplicate elements.
+- **In-place application:** `apply` and `apply_intents` update the supplied target message. Copy it first if you need to retain the original.
+
+The identity configuration in the example uses a plain Python object with an `identity` mapping; no application-specific message types are required. Advanced users can also configure descriptor-specific identity rules and immutable paths through the lower-level APIs.
+
+## Tests
+
+```sh
+python -m pytest -q
+```
+
+The test suite uses public Protobuf schemas and exercises identity resolution, repeated-message merging, plan replay, and package metadata.
 
 ## License
 
-MIT License. Copyright (c) 2026 Michael Gams.
-See [LICENSE](LICENSE) for the full license text.
-
-Release preparation and public CI are tracked in RELEASE_CHECKLIST.md.
+MIT License. Copyright (c) 2026 Michael Gams. See [LICENSE](LICENSE).
