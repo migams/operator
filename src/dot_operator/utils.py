@@ -53,7 +53,7 @@ class ResourceIdentityResolver:
         field: str | tuple[str, ...],
     ) -> str:
         if isinstance(field, tuple):
-            return field[-1]
+            return ".".join(field)
 
         return field
 
@@ -78,7 +78,10 @@ class ResourceIdentityResolver:
                     return False
 
                 if i < len(parts) - 1:
-                    if field.type != FieldDescriptor.TYPE_MESSAGE:
+                    if (
+                        field.type != FieldDescriptor.TYPE_MESSAGE
+                        or field.is_repeated
+                    ):
                         return False
 
                     cur = field.message_type
@@ -117,16 +120,30 @@ class ResourceIdentityResolver:
         if not paths:
             return False
 
-        allowed = {p.split(".")[-1] for p in paths}
+        allowed: dict[str, dict] = {}
+        for path in paths:
+            node = allowed
+            for part in path.split("."):
+                node = node.setdefault(part, {})
 
-        for field, _ in msg.ListFields():
-            if field.name in allowed:
-                continue
-            if field.is_repeated and field.type == FieldDescriptor.TYPE_MESSAGE:
-                continue
-            return False
+        def is_selector_only(value: Message, identity_tree: dict) -> bool:
+            for field, member in value.ListFields():
+                if field.name in identity_tree:
+                    nested = identity_tree[field.name]
+                    if nested:
+                        if (
+                            field.is_repeated
+                            or field.type != FieldDescriptor.TYPE_MESSAGE
+                            or not is_selector_only(member, nested)
+                        ):
+                            return False
+                    continue
+                if field.is_repeated and field.type == FieldDescriptor.TYPE_MESSAGE:
+                    continue
+                return False
+            return True
 
-        return True
+        return is_selector_only(msg, allowed)
 
     def is_message_authoritative(self, msg: Message) -> bool:
         paths = self.fields(msg)

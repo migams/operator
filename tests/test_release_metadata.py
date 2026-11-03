@@ -23,5 +23,6 @@ def test_ci_enforces_branch_coverage_floor():
     project = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
     workflow = (ROOT / ".github/workflows/tests.yml").read_text(encoding="utf-8")
     assert "pytest-cov>=7,<8" in project
-    for flag in ("--cov=dot_operator", "--cov-branch", "--cov-fail-under=80"):
+    for flag in ("--cov=dot_operator", "--cov-branch", "--cov-fail-under=90"):
         assert flag in workflow
+    assert "coverage below 90%" in (ROOT / "README.md").read_text(encoding="utf-8")

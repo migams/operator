@@ -37,6 +37,27 @@ def _schema():
     field(profile, "timezone", 2, STRING)
     field(item, "id", 1, STRING)
     field(item, "value", 2, STRING)
+    field(item, "labels", 3, STRING, repeated=True)
+    field(item, "profile", 4, MESSAGE, type_name=".oss_operations.Profile")
+    field(item, "history", 5, MESSAGE, repeated=True,
+          type_name=".oss_operations.Profile")
+    note_entry = item.nested_type.add(name="MetaEntry")
+    note_entry.options.map_entry = True
+    field(note_entry, "key", 1, STRING)
+    field(note_entry, "value", 2, STRING)
+    field(item, "meta", 6, MESSAGE, repeated=True,
+          type_name=".oss_operations.Item.MetaEntry")
+    profile_entry = item.nested_type.add(name="ProfilesEntry")
+    profile_entry.options.map_entry = True
+    field(profile_entry, "key", 1, STRING)
+    field(profile_entry, "value", 2, MESSAGE, type_name=".oss_operations.Profile")
+    field(item, "profiles", 7, MESSAGE, repeated=True,
+          type_name=".oss_operations.Item.ProfilesEntry")
+    attachment = file.message_type.add(name="Attachment")
+    field(attachment, "id", 1, STRING)
+    field(attachment, "value", 2, STRING)
+    field(item, "attachments", 8, MESSAGE, repeated=True,
+          type_name=".oss_operations.Attachment")
     field(record, "name", 1, STRING)
     field(record, "count", 2, INT)
     field(record, "profile", 3, MESSAGE, type_name=".oss_operations.Profile")

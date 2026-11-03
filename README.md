@@ -72,7 +72,7 @@ The identity configuration in the example uses a plain Python object with an `id
 
 ```sh
 python -m pytest -q
-python -m pytest -q --cov=dot_operator --cov-branch --cov-report=term-missing --cov-fail-under=80
+python -m pytest -q --cov=dot_operator --cov-branch --cov-report=term-missing --cov-fail-under=90
 ```
 
 The tests use public Protobuf schemas and exercise all three operations
@@ -80,7 +80,7 @@ The tests use public Protobuf schemas and exercise all three operations
 maps, repeated scalars, identity-aware repeated messages, and oneofs.
 They also cover replayed mutation plans, resource delta APIs, immutable
 fields, invalid identities, and unsupported operations. CI rejects
-combined line-and-branch coverage below 80%.
+combined line-and-branch coverage below 90%.
 
 ## License
 

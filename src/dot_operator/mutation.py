@@ -8,6 +8,8 @@
 (object) services.operator
 """
 
+from collections.abc import MutableMapping
+
 from google.protobuf.descriptor import FieldDescriptor
 from google.protobuf.message import Message
 
@@ -210,7 +212,7 @@ class MutationApplier:
             elif isinstance(token, MapKeySelector):
                 container = msg
 
-                if not isinstance(container, dict):
+                if not isinstance(container, MutableMapping):
                     raise ValueError("MapKeySelector applied to non-map field")
 
                 if intent.op == "remove":
